@@ -1,18 +1,33 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+import { Stack } from "expo-router";
+import { View, StyleSheet, StatusBar } from "react-native";
+import { AudioProvider } from "../context/AudioContext";
+import { BottomPlayer } from "../components/BottomPlayer";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <AudioProvider>
+      <View style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#09090B" />
+        <Stack
+          screenOptions={{
+            headerStyle: { backgroundColor: "#09090B" },
+            headerTintColor: "#F4F4F5",
+            headerTitleStyle: { fontWeight: "700" },
+            contentStyle: { backgroundColor: "#09090B" },
+          }}
+        >
+          <Stack.Screen name="index" options={{ title: "My Music Hub", headerShown: false }} />
+          <Stack.Screen name="songs" options={{ title: "All Songs", headerBackTitle: "Back" }} />
+        </Stack>
+        <BottomPlayer />
+      </View>
+    </AudioProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#09090B",
+  },
+});
