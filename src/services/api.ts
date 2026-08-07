@@ -1,11 +1,42 @@
 import { Song } from "../types";
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
+const BACKEND_BASE_URL = "https://music-backend-yghl.vercel.app";
+const LOCAL_BACKEND_URL = "http://localhost:3000";
+
+// Helper function to execute request against Vercel backend with automatic fallback
+const requestWithFallback = async (endpoint: string, options: RequestInit = {}): Promise<any> => {
+  const primaryUrl = `${BACKEND_BASE_URL}${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+  const apiPrefixedUrl = `${BACKEND_BASE_URL}/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+  const localUrl = `${LOCAL_BACKEND_URL}/api${endpoint.startsWith("/") ? "" : "/"}${endpoint}`;
+
+  // Try primary backend URL first
+  try {
+    const res = await fetch(primaryUrl, options);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    // Primary failed, continue to fallbacks
+  }
+
+  // Try /api prefixed backend URL second
+  try {
+    const res = await fetch(apiPrefixedUrl, options);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (e) {
+    // API prefix failed, continue to local
+  }
+
+  // Fallback to local server if production backend is unreachable
+  const localRes = await fetch(localUrl, options);
+  return await localRes.json();
+};
 
 export const fetchSongs = async (): Promise<Song[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/songs`);
-    const data = await response.json();
+    const data = await requestWithFallback("/api/songs");
     if (!data.success) {
       throw new Error(data.error || "Failed to fetch songs");
     }
@@ -40,12 +71,11 @@ export const uploadSong = async (
     if (title) formData.append("title", title);
     if (artist) formData.append("artist", artist);
 
-    const response = await fetch(`${API_BASE_URL}/songs/upload`, {
+    const data = await requestWithFallback("/api/songs/upload", {
       method: "POST",
       body: formData,
     });
 
-    const data = await response.json();
     if (!data.success) {
       throw new Error(data.error || "Failed to upload song");
     }
@@ -58,7 +88,7 @@ export const uploadSong = async (
 
 export const renameSong = async (id: number, title: string, artist?: string): Promise<Song> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/songs/${id}`, {
+    const data = await requestWithFallback(`/api/songs/${id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -66,7 +96,6 @@ export const renameSong = async (id: number, title: string, artist?: string): Pr
       body: JSON.stringify({ title, artist }),
     });
 
-    const data = await response.json();
     if (!data.success) {
       throw new Error(data.error || "Failed to update song");
     }
@@ -79,11 +108,10 @@ export const renameSong = async (id: number, title: string, artist?: string): Pr
 
 export const deleteSong = async (id: number): Promise<void> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/songs/${id}`, {
+    const data = await requestWithFallback(`/api/songs/${id}`, {
       method: "DELETE",
     });
 
-    const data = await response.json();
     if (!data.success) {
       throw new Error(data.error || "Failed to delete song");
     }
